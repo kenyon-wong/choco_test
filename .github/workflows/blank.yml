@@ -10,7 +10,7 @@ on:
       retention_days:
         description: 'Artifact retention days'
         required: false
-        default: '7'
+        default: '3'
         type: number
 
 env:
@@ -26,16 +26,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup PowerShell execution policy
-        run: Set-ExecutionPolicy Bypass -Scope Process -Force
-        shell: powershell
+      # - name: Setup PowerShell execution policy
+      #   run: Set-ExecutionPolicy Bypass -Scope Process -Force
+      #   shell: powershell
 
       - name: Install Chocolatey
         run: |
           if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
             Write-Host "Installing Chocolatey..."
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+            Set-ExecutionPolicy Bypass -Scope Process -Force; iex (irm https://community.chocolatey.org/install.ps1)
           } else {
             Write-Host "Chocolatey already installed"
           }
