@@ -1,20 +1,237 @@
-name: Download Chocolatey Packages
-on: [workflow_dispatch]  # 手动触发
+name: Download and Package Chocolatey Packages
+
+on: 
+  workflow_dispatch:
+    inputs:
+      package_list:
+        description: 'Custom package list (comma-separated)'
+        required: false
+        default: ''
+      retention_days:
+        description: 'Artifact retention days'
+        required: false
+        default: '7'
+        type: number
+
+env:
+  CHOCO_CACHE_DIR: ${{ github.workspace }}\choco-cache
+  PACKAGES_DIR: ${{ github.workspace }}\packages
+
 jobs:
-  download:
+  download-packages:
     runs-on: windows-latest
+    timeout-minutes: 60
+    
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell execution policy
+        run: Set-ExecutionPolicy Bypass -Scope Process -Force
+        shell: powershell
+
       - name: Install Chocolatey
-        run: Set-ExecutionPolicy Bypass -Scope Process -Force; iex (irm https://community.chocolatey.org/install.ps1)
-      - name: Download Packages
         run: |
-          choco install git -y --no-progress --force --download-only
-          choco install notepadplusplus -y --no-progress --force --download-only
-      - name: Archive Packages
+          if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+            Write-Host "Installing Chocolatey..."
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          } else {
+            Write-Host "Chocolatey already installed"
+          }
+          choco --version
+        shell: powershell
+
+      - name: Create directories
         run: |
-          Compress-Archive -Path "$env:ChocolateyInstall\lib" -DestinationPath packages.zip
-      - name: Upload Artifact
+          New-Item -ItemType Directory -Force -Path "$env:CHOCO_CACHE_DIR"
+          New-Item -ItemType Directory -Force -Path "$env:PACKAGES_DIR"
+        shell: powershell
+
+      - name: Configure Chocolatey
+        run: |
+          choco config set cacheLocation "$env:CHOCO_CACHE_DIR"
+          choco feature enable -n allowGlobalConfirmation
+        shell: powershell
+
+      - name: Download Core Extensions
+        run: |
+          $packages = @(
+            'choco-cleaner',
+            'chocolatey',
+            'chocolatey-compatibility.extension',
+            'chocolatey-core.extension',
+            'chocolatey-dotnetfx.extension',
+            'chocolatey-fastanswers.extension',
+            'chocolatey-visualstudio.extension',
+            'chocolatey-windowsupdate.extension'
+          )
+          
+          foreach ($package in $packages) {
+            Write-Host "Downloading $package..."
+            try {
+              choco download $package --output-directory="$env:PACKAGES_DIR" --no-progress
+            } catch {
+              Write-Warning "Failed to download $package`: $_"
+            }
+          }
+        shell: powershell
+
+      - name: Download Utility Packages
+        run: |
+          $packages = @(
+            '7zip',
+            '7zip-zstd',
+            'bandizip',
+            'Everything',
+            'Firefox'
+          )
+          
+          foreach ($package in $packages) {
+            Write-Host "Downloading $package..."
+            try {
+              choco download $package --output-directory="$env:PACKAGES_DIR" --no-progress
+            } catch {
+              Write-Warning "Failed to download $package`: $_"
+            }
+          }
+        shell: powershell
+
+      - name: Download .NET Packages
+        run: |
+          $packages = @(
+            'DotNet3.5',
+            'DotNet4.5.2',
+            'dotnet-6.0-runtime',
+            'dotnetfx',
+            'vcredist140',
+            'vcredist2015'
+          )
+          
+          foreach ($package in $packages) {
+            Write-Host "Downloading $package..."
+            try {
+              choco download $package --output-directory="$env:PACKAGES_DIR" --no-progress
+            } catch {
+              Write-Warning "Failed to download $package`: $_"
+            }
+          }
+        shell: powershell
+
+      - name: Download System Updates
+        run: |
+          $packages = @(
+            'KB2919355',
+            'KB2919442',
+            'KB2999226',
+            'KB3033929',
+            'KB3035131',
+            'KB3063858'
+          )
+          
+          foreach ($package in $packages) {
+            Write-Host "Downloading $package..."
+            try {
+              choco download $package --output-directory="$env:PACKAGES_DIR" --no-progress
+            } catch {
+              Write-Warning "Failed to download $package`: $_"
+            }
+          }
+        shell: powershell
+
+      - name: Download Additional Tools
+        run: |
+          $packages = @(
+            'feroxbuster',
+            'mysql-cli',
+            'redis-desktop-manager',
+            'ssh-copy-id',
+            'veracrypt'
+          )
+          
+          foreach ($package in $packages) {
+            Write-Host "Downloading $package..."
+            try {
+              choco download $package --output-directory="$env:PACKAGES_DIR" --no-progress
+            } catch {
+              Write-Warning "Failed to download $package`: $_"
+            }
+          }
+        shell: powershell
+
+      - name: Download custom packages (if specified)
+        if: ${{ github.event.inputs.package_list != '' }}
+        run: |
+          $customPackages = "${{ github.event.inputs.package_list }}" -split ','
+          foreach ($package in $customPackages) {
+            $package = $package.Trim()
+            if ($package) {
+              Write-Host "Downloading custom package: $package..."
+              try {
+                choco download $package --output-directory="$env:PACKAGES_DIR" --no-progress
+              } catch {
+                Write-Warning "Failed to download custom package $package`: $_"
+              }
+            }
+          }
+        shell: powershell
+
+      - name: Generate package inventory
+        run: |
+          $inventory = @()
+          Get-ChildItem "$env:PACKAGES_DIR" -Recurse -File | ForEach-Object {
+            $inventory += [PSCustomObject]@{
+              Name = $_.Name
+              Size = $_.Length
+              Path = $_.FullName.Replace("$env:PACKAGES_DIR\", "")
+              LastModified = $_.LastWriteTime
+            }
+          }
+          
+          $inventory | ConvertTo-Json -Depth 2 | Out-File "$env:PACKAGES_DIR\inventory.json" -Encoding UTF8
+          
+          Write-Host "Package inventory:"
+          $inventory | Format-Table -AutoSize
+        shell: powershell
+
+      - name: Create compressed archive
+        run: |
+          $archivePath = "${{ github.workspace }}\chocolatey-packages.7z"
+          
+          # 使用系统自带的压缩功能作为备选
+          if (Get-Command 7z -ErrorAction SilentlyContinue) {
+            Write-Host "Using 7-Zip for compression..."
+            7z a -mx9 -t7z "$archivePath" "$env:PACKAGES_DIR\*"
+          } else {
+            Write-Host "Using PowerShell compression..."
+            Compress-Archive -Path "$env:PACKAGES_DIR\*" -DestinationPath "${{ github.workspace }}\chocolatey-packages.zip" -CompressionLevel Optimal
+          }
+        shell: powershell
+
+      - name: Upload packages artifact
         uses: actions/upload-artifact@v4
         with:
-          name: offline-packages
-          path: packages.zip
+          name: chocolatey-offline-packages-${{ github.run_number }}
+          path: |
+            ${{ github.workspace }}\chocolatey-packages.*
+            ${{ env.PACKAGES_DIR }}\inventory.json
+          retention-days: ${{ github.event.inputs.retention_days || 7 }}
+          compression-level: 6
+
+      - name: Display summary
+        run: |
+          Write-Host "=== Download Summary ===" -ForegroundColor Green
+          $totalSize = (Get-ChildItem "$env:PACKAGES_DIR" -Recurse -File | Measure-Object -Property Length -Sum).Sum
+          $totalSizeMB = [math]::Round($totalSize / 1MB, 2)
+          $packageCount = (Get-ChildItem "$env:PACKAGES_DIR" -File -Filter "*.nupkg" | Measure-Object).Count
+          
+          Write-Host "Total packages downloaded: $packageCount"
+          Write-Host "Total size: $totalSizeMB MB"
+          Write-Host "Packages location: $env:PACKAGES_DIR"
+          
+          if (Test-Path "${{ github.workspace }}\chocolatey-packages.*") {
+            $archiveSize = (Get-ChildItem "${{ github.workspace }}\chocolatey-packages.*" | Measure-Object -Property Length -Sum).Sum
+            $archiveSizeMB = [math]::Round($archiveSize / 1MB, 2)
+            Write-Host "Archive size: $archiveSizeMB MB"
+          }
+        shell: powershell
