@@ -10,7 +10,7 @@ on:
       retention_days:
         description: 'Artifact retention days'
         required: false
-        default: '3'
+        default: '7'
         type: number
 
 env:
@@ -26,31 +26,43 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # - name: Setup PowerShell execution policy
-      #   run: Set-ExecutionPolicy Bypass -Scope Process -Force
-      #   shell: powershell
-
       - name: Install Chocolatey
         run: |
           if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
             Write-Host "Installing Chocolatey..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-            Set-ExecutionPolicy Bypass -Scope Process -Force; iex (irm https://community.chocolatey.org/install.ps1)
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+            
+            # 手动更新环境变量
+            $env:ChocolateyInstall = 'C:\ProgramData\chocolatey'
+            $env:PATH = "$env:ChocolateyInstall\bin;$env:PATH"
           } else {
             Write-Host "Chocolatey already installed"
           }
+          
+          # 验证安装
           choco --version
-          refreshenv
+          Write-Host "Chocolatey installation verified"
         shell: powershell
 
       - name: Configure Chocolatey
         run: |
+          # 确保 Chocolatey 可用
+          $env:ChocolateyInstall = 'C:\ProgramData\chocolatey'
+          $env:PATH = "$env:ChocolateyInstall\bin;$env:PATH"
+          
           choco feature enable -n allowGlobalConfirmation
           choco config set commandExecutionTimeoutSeconds 14400
+          Write-Host "Chocolatey configured successfully"
         shell: powershell
 
       - name: Download Core Extensions
         run: |
+          # 确保环境变量设置
+          $env:ChocolateyInstall = 'C:\ProgramData\chocolatey'
+          $env:PATH = "$env:ChocolateyInstall\bin;$env:PATH"
+          
           $packages = @(
             'choco-cleaner',
             'chocolatey-compatibility.extension',
@@ -64,16 +76,24 @@ jobs:
           foreach ($package in $packages) {
             Write-Host "Downloading $package..." -ForegroundColor Yellow
             try {
-              choco install $package --download-only --no-progress --force -y
-              Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              $result = choco install $package --download-only --no-progress --force -y 2>&1
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              } else {
+                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Host $result
+              }
             } catch {
-              Write-Warning "✗ Failed to download $package`: $_"
+              Write-Warning "✗ Exception downloading $package`: $_"
             }
           }
         shell: powershell
 
       - name: Download Utility Packages
         run: |
+          $env:ChocolateyInstall = 'C:\ProgramData\chocolatey'
+          $env:PATH = "$env:ChocolateyInstall\bin;$env:PATH"
+          
           $packages = @(
             '7zip',
             '7zip-zstd',
@@ -85,16 +105,24 @@ jobs:
           foreach ($package in $packages) {
             Write-Host "Downloading $package..." -ForegroundColor Yellow
             try {
-              choco install $package --download-only --no-progress --force -y
-              Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              $result = choco install $package --download-only --no-progress --force -y 2>&1
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              } else {
+                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Host $result
+              }
             } catch {
-              Write-Warning "✗ Failed to download $package`: $_"
+              Write-Warning "✗ Exception downloading $package`: $_"
             }
           }
         shell: powershell
 
       - name: Download .NET Packages
         run: |
+          $env:ChocolateyInstall = 'C:\ProgramData\chocolatey'
+          $env:PATH = "$env:ChocolateyInstall\bin;$env:PATH"
+          
           $packages = @(
             'DotNet3.5',
             'DotNet4.5.2',
@@ -107,16 +135,24 @@ jobs:
           foreach ($package in $packages) {
             Write-Host "Downloading $package..." -ForegroundColor Yellow
             try {
-              choco install $package --download-only --no-progress --force -y
-              Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              $result = choco install $package --download-only --no-progress --force -y 2>&1
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              } else {
+                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Host $result
+              }
             } catch {
-              Write-Warning "✗ Failed to download $package`: $_"
+              Write-Warning "✗ Exception downloading $package`: $_"
             }
           }
         shell: powershell
 
       - name: Download System Updates
         run: |
+          $env:ChocolateyInstall = 'C:\ProgramData\chocolatey'
+          $env:PATH = "$env:ChocolateyInstall\bin;$env:PATH"
+          
           $packages = @(
             'KB2919355',
             'KB2919442',
@@ -129,16 +165,24 @@ jobs:
           foreach ($package in $packages) {
             Write-Host "Downloading $package..." -ForegroundColor Yellow
             try {
-              choco install $package --download-only --no-progress --force -y
-              Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              $result = choco install $package --download-only --no-progress --force -y 2>&1
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              } else {
+                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Host $result
+              }
             } catch {
-              Write-Warning "✗ Failed to download $package`: $_"
+              Write-Warning "✗ Exception downloading $package`: $_"
             }
           }
         shell: powershell
 
       - name: Download Additional Tools
         run: |
+          $env:ChocolateyInstall = 'C:\ProgramData\chocolatey'
+          $env:PATH = "$env:ChocolateyInstall\bin;$env:PATH"
+          
           $packages = @(
             'feroxbuster',
             'mysql-cli',
@@ -150,10 +194,15 @@ jobs:
           foreach ($package in $packages) {
             Write-Host "Downloading $package..." -ForegroundColor Yellow
             try {
-              choco install $package --download-only --no-progress --force -y
-              Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              $result = choco install $package --download-only --no-progress --force -y 2>&1
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+              } else {
+                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Host $result
+              }
             } catch {
-              Write-Warning "✗ Failed to download $package`: $_"
+              Write-Warning "✗ Exception downloading $package`: $_"
             }
           }
         shell: powershell
@@ -161,16 +210,24 @@ jobs:
       - name: Download custom packages (if specified)
         if: ${{ github.event.inputs.package_list != '' }}
         run: |
+          $env:ChocolateyInstall = 'C:\ProgramData\chocolatey'
+          $env:PATH = "$env:ChocolateyInstall\bin;$env:PATH"
+          
           $customPackages = "${{ github.event.inputs.package_list }}" -split ','
           foreach ($package in $customPackages) {
             $package = $package.Trim()
             if ($package) {
               Write-Host "Downloading custom package: $package..." -ForegroundColor Yellow
               try {
-                choco install $package --download-only --no-progress --force -y
-                Write-Host "✓ Successfully downloaded custom package $package" -ForegroundColor Green
+                $result = choco install $package --download-only --no-progress --force -y 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "✓ Successfully downloaded custom package $package" -ForegroundColor Green
+                } else {
+                  Write-Warning "✗ Failed to download custom package $package. Exit code: $LASTEXITCODE"
+                  Write-Host $result
+                }
               } catch {
-                Write-Warning "✗ Failed to download custom package $package`: $_"
+                Write-Warning "✗ Exception downloading custom package $package`: $_"
               }
             }
           }
@@ -187,24 +244,34 @@ jobs:
           # 收集 lib 目录中的包
           if (Test-Path "$env:CHOCO_LIB_DIR") {
             Write-Host "Copying packages from lib directory..."
-            Copy-Item -Path "$env:CHOCO_LIB_DIR\*" -Destination $outputDir -Recurse -Force
+            try {
+              Copy-Item -Path "$env:CHOCO_LIB_DIR\*" -Destination $outputDir -Recurse -Force -ErrorAction Continue
+              Write-Host "✓ Lib directory copied successfully"
+            } catch {
+              Write-Warning "Failed to copy lib directory: $_"
+            }
+          } else {
+            Write-Warning "Lib directory not found: $env:CHOCO_LIB_DIR"
           }
           
           # 收集 cache 目录中的 nupkg 文件
           if (Test-Path "$env:CHOCO_CACHE_DIR") {
             Write-Host "Copying nupkg files from cache directory..."
-            Get-ChildItem -Path "$env:CHOCO_CACHE_DIR" -Filter "*.nupkg" -Recurse | ForEach-Object {
-              Copy-Item -Path $_.FullName -Destination $outputDir -Force
+            try {
+              Get-ChildItem -Path "$env:CHOCO_CACHE_DIR" -Filter "*.nupkg" -Recurse -ErrorAction Continue | ForEach-Object {
+                Copy-Item -Path $_.FullName -Destination $outputDir -Force
+              }
+              Write-Host "✓ Cache nupkg files copied successfully"
+            } catch {
+              Write-Warning "Failed to copy cache files: $_"
             }
+          } else {
+            Write-Warning "Cache directory not found: $env:CHOCO_CACHE_DIR"
           }
           
-          # 检查 chocolatey 安装目录下的其他可能位置
-          $chocoRoot = Split-Path $env:ChocolateyInstall -Parent
-          if (Test-Path "$chocoRoot\chocolatey") {
-            Get-ChildItem -Path "$chocoRoot\chocolatey" -Filter "*.nupkg" -Recurse | ForEach-Object {
-              Copy-Item -Path $_.FullName -Destination $outputDir -Force
-            }
-          }
+          # 显示收集到的文件
+          $collectedFiles = Get-ChildItem $outputDir -Recurse -File
+          Write-Host "Collected $($collectedFiles.Count) files total"
         shell: powershell
 
       - name: Generate package inventory
@@ -212,39 +279,45 @@ jobs:
           $outputDir = "${{ github.workspace }}\collected-packages"
           $inventory = @()
           
-          Get-ChildItem $outputDir -Recurse -File | ForEach-Object {
-            $inventory += [PSCustomObject]@{
-              Name = $_.Name
-              Size = "{0:N2} MB" -f ($_.Length / 1MB)
-              SizeBytes = $_.Length
-              Path = $_.FullName.Replace("$outputDir\", "")
-              LastModified = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-              Extension = $_.Extension
+          if (Test-Path $outputDir) {
+            Get-ChildItem $outputDir -Recurse -File | ForEach-Object {
+              $inventory += [PSCustomObject]@{
+                Name = $_.Name
+                Size = "{0:N2} MB" -f ($_.Length / 1MB)
+                SizeBytes = $_.Length
+                Path = $_.FullName.Replace("$outputDir\", "")
+                LastModified = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                Extension = $_.Extension
+              }
             }
           }
           
-          # 保存详细清单
-          $inventory | ConvertTo-Json -Depth 2 | Out-File "$outputDir\inventory.json" -Encoding UTF8
-          
-          # 生成摘要
-          $summary = @{
-            TotalFiles = $inventory.Count
-            TotalSizeMB = [math]::Round(($inventory | Measure-Object -Property SizeBytes -Sum).Sum / 1MB, 2)
-            NupkgFiles = ($inventory | Where-Object { $_.Extension -eq ".nupkg" }).Count
-            GeneratedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss UTC")
-            Packages = ($inventory | Where-Object { $_.Extension -eq ".nupkg" } | Select-Object Name, Size | Sort-Object Name)
-          }
-          
-          $summary | ConvertTo-Json -Depth 3 | Out-File "$outputDir\summary.json" -Encoding UTF8
-          
-          Write-Host "=== Package Inventory ===" -ForegroundColor Green
-          Write-Host "Total files: $($summary.TotalFiles)"
-          Write-Host "Total size: $($summary.TotalSizeMB) MB"
-          Write-Host "Nupkg files: $($summary.NupkgFiles)"
-          
-          if ($summary.Packages.Count -gt 0) {
-            Write-Host "`nDownloaded packages:" -ForegroundColor Cyan
-            $summary.Packages | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Size))" }
+          if ($inventory.Count -gt 0) {
+            # 保存详细清单
+            $inventory | ConvertTo-Json -Depth 2 | Out-File "$outputDir\inventory.json" -Encoding UTF8
+            
+            # 生成摘要
+            $summary = @{
+              TotalFiles = $inventory.Count
+              TotalSizeMB = [math]::Round(($inventory | Measure-Object -Property SizeBytes -Sum).Sum / 1MB, 2)
+              NupkgFiles = ($inventory | Where-Object { $_.Extension -eq ".nupkg" }).Count
+              GeneratedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss UTC")
+              Packages = ($inventory | Where-Object { $_.Extension -eq ".nupkg" } | Select-Object Name, Size | Sort-Object Name)
+            }
+            
+            $summary | ConvertTo-Json -Depth 3 | Out-File "$outputDir\summary.json" -Encoding UTF8
+            
+            Write-Host "=== Package Inventory ===" -ForegroundColor Green
+            Write-Host "Total files: $($summary.TotalFiles)"
+            Write-Host "Total size: $($summary.TotalSizeMB) MB"
+            Write-Host "Nupkg files: $($summary.NupkgFiles)"
+            
+            if ($summary.Packages.Count -gt 0) {
+              Write-Host "`nDownloaded packages:" -ForegroundColor Cyan
+              $summary.Packages | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Size))" }
+            }
+          } else {
+            Write-Warning "No files found in output directory"
           }
         shell: powershell
 
@@ -253,17 +326,27 @@ jobs:
           $outputDir = "${{ github.workspace }}\collected-packages"
           $archivePath = "${{ github.workspace }}\chocolatey-packages.zip"
           
-          Write-Host "Creating compressed archive..." -ForegroundColor Cyan
-          
-          # 使用 PowerShell 内置压缩
-          Compress-Archive -Path "$outputDir\*" -DestinationPath $archivePath -CompressionLevel Optimal -Force
-          
-          if (Test-Path $archivePath) {
-            $archiveSize = (Get-Item $archivePath).Length
-            $archiveSizeMB = [math]::Round($archiveSize / 1MB, 2)
-            Write-Host "✓ Archive created successfully: $archiveSizeMB MB" -ForegroundColor Green
+          if (Test-Path $outputDir) {
+            Write-Host "Creating compressed archive..." -ForegroundColor Cyan
+            
+            try {
+              Compress-Archive -Path "$outputDir\*" -DestinationPath $archivePath -CompressionLevel Optimal -Force
+              
+              if (Test-Path $archivePath) {
+                $archiveSize = (Get-Item $archivePath).Length
+                $archiveSizeMB = [math]::Round($archiveSize / 1MB, 2)
+                Write-Host "✓ Archive created successfully: $archiveSizeMB MB" -ForegroundColor Green
+              } else {
+                Write-Error "Failed to create archive"
+              }
+            } catch {
+              Write-Error "Exception creating archive: $_"
+            }
           } else {
-            Write-Error "Failed to create archive"
+            Write-Warning "Output directory not found, creating empty archive"
+            New-Item -ItemType Directory -Force -Path $outputDir
+            "No packages were downloaded" | Out-File "$outputDir\README.txt"
+            Compress-Archive -Path "$outputDir\*" -DestinationPath $archivePath -CompressionLevel Optimal -Force
           }
         shell: powershell
 
@@ -273,8 +356,6 @@ jobs:
           name: chocolatey-offline-packages-${{ github.run_number }}
           path: |
             ${{ github.workspace }}\chocolatey-packages.zip
-            ${{ github.workspace }}\collected-packages\summary.json
-            ${{ github.workspace }}\collected-packages\inventory.json
           retention-days: ${{ github.event.inputs.retention_days || 7 }}
           compression-level: 6
 
@@ -297,6 +378,6 @@ jobs:
             Write-Host "Archive location: $archivePath"
           }
           
-          Write-Host "`n✓ Workflow completed successfully!" -ForegroundColor Green
+          Write-Host "`n✓ Workflow completed!" -ForegroundColor Green
           Write-Host "You can download the artifact from the Actions tab." -ForegroundColor Yellow
         shell: powershell
