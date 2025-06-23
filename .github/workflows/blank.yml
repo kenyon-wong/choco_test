@@ -78,13 +78,13 @@ jobs:
             try {
               $result = choco install $package --download-only --no-progress --force -y 2>&1
               if ($LASTEXITCODE -eq 0) {
-                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+                Write-Host "[SUCCESS] Downloaded $package" -ForegroundColor Green
               } else {
-                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Warning "[FAILED] Failed to download $package. Exit code: $LASTEXITCODE"
                 Write-Host $result
               }
             } catch {
-              Write-Warning "✗ Exception downloading $package`: $_"
+              Write-Warning "[ERROR] Exception downloading $package : $_"
             }
           }
         shell: powershell
@@ -107,13 +107,13 @@ jobs:
             try {
               $result = choco install $package --download-only --no-progress --force -y 2>&1
               if ($LASTEXITCODE -eq 0) {
-                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+                Write-Host "[SUCCESS] Downloaded $package" -ForegroundColor Green
               } else {
-                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Warning "[FAILED] Failed to download $package. Exit code: $LASTEXITCODE"
                 Write-Host $result
               }
             } catch {
-              Write-Warning "✗ Exception downloading $package`: $_"
+              Write-Warning "[ERROR] Exception downloading $package : $_"
             }
           }
         shell: powershell
@@ -137,13 +137,13 @@ jobs:
             try {
               $result = choco install $package --download-only --no-progress --force -y 2>&1
               if ($LASTEXITCODE -eq 0) {
-                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+                Write-Host "[SUCCESS] Downloaded $package" -ForegroundColor Green
               } else {
-                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Warning "[FAILED] Failed to download $package. Exit code: $LASTEXITCODE"
                 Write-Host $result
               }
             } catch {
-              Write-Warning "✗ Exception downloading $package`: $_"
+              Write-Warning "[ERROR] Exception downloading $package : $_"
             }
           }
         shell: powershell
@@ -167,13 +167,13 @@ jobs:
             try {
               $result = choco install $package --download-only --no-progress --force -y 2>&1
               if ($LASTEXITCODE -eq 0) {
-                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+                Write-Host "[SUCCESS] Downloaded $package" -ForegroundColor Green
               } else {
-                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Warning "[FAILED] Failed to download $package. Exit code: $LASTEXITCODE"
                 Write-Host $result
               }
             } catch {
-              Write-Warning "✗ Exception downloading $package`: $_"
+              Write-Warning "[ERROR] Exception downloading $package : $_"
             }
           }
         shell: powershell
@@ -196,13 +196,13 @@ jobs:
             try {
               $result = choco install $package --download-only --no-progress --force -y 2>&1
               if ($LASTEXITCODE -eq 0) {
-                Write-Host "✓ Successfully downloaded $package" -ForegroundColor Green
+                Write-Host "[SUCCESS] Downloaded $package" -ForegroundColor Green
               } else {
-                Write-Warning "✗ Failed to download $package. Exit code: $LASTEXITCODE"
+                Write-Warning "[FAILED] Failed to download $package. Exit code: $LASTEXITCODE"
                 Write-Host $result
               }
             } catch {
-              Write-Warning "✗ Exception downloading $package`: $_"
+              Write-Warning "[ERROR] Exception downloading $package : $_"
             }
           }
         shell: powershell
@@ -221,13 +221,13 @@ jobs:
               try {
                 $result = choco install $package --download-only --no-progress --force -y 2>&1
                 if ($LASTEXITCODE -eq 0) {
-                  Write-Host "✓ Successfully downloaded custom package $package" -ForegroundColor Green
+                  Write-Host "[SUCCESS] Downloaded custom package $package" -ForegroundColor Green
                 } else {
-                  Write-Warning "✗ Failed to download custom package $package. Exit code: $LASTEXITCODE"
+                  Write-Warning "[FAILED] Failed to download custom package $package. Exit code: $LASTEXITCODE"
                   Write-Host $result
                 }
               } catch {
-                Write-Warning "✗ Exception downloading custom package $package`: $_"
+                Write-Warning "[ERROR] Exception downloading custom package $package : $_"
               }
             }
           }
@@ -246,7 +246,7 @@ jobs:
             Write-Host "Copying packages from lib directory..."
             try {
               Copy-Item -Path "$env:CHOCO_LIB_DIR\*" -Destination $outputDir -Recurse -Force -ErrorAction Continue
-              Write-Host "✓ Lib directory copied successfully"
+              Write-Host "[SUCCESS] Lib directory copied successfully"
             } catch {
               Write-Warning "Failed to copy lib directory: $_"
             }
@@ -261,7 +261,7 @@ jobs:
               Get-ChildItem -Path "$env:CHOCO_CACHE_DIR" -Filter "*.nupkg" -Recurse -ErrorAction Continue | ForEach-Object {
                 Copy-Item -Path $_.FullName -Destination $outputDir -Force
               }
-              Write-Host "✓ Cache nupkg files copied successfully"
+              Write-Host "[SUCCESS] Cache nupkg files copied successfully"
             } catch {
               Write-Warning "Failed to copy cache files: $_"
             }
@@ -313,7 +313,8 @@ jobs:
             Write-Host "Nupkg files: $($summary.NupkgFiles)"
             
             if ($summary.Packages.Count -gt 0) {
-              Write-Host "`nDownloaded packages:" -ForegroundColor Cyan
+              Write-Host ""
+              Write-Host "Downloaded packages:" -ForegroundColor Cyan
               $summary.Packages | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Size))" }
             }
           } else {
@@ -335,7 +336,7 @@ jobs:
               if (Test-Path $archivePath) {
                 $archiveSize = (Get-Item $archivePath).Length
                 $archiveSizeMB = [math]::Round($archiveSize / 1MB, 2)
-                Write-Host "✓ Archive created successfully: $archiveSizeMB MB" -ForegroundColor Green
+                Write-Host "[SUCCESS] Archive created successfully: $archiveSizeMB MB" -ForegroundColor Green
               } else {
                 Write-Error "Failed to create archive"
               }
@@ -378,6 +379,7 @@ jobs:
             Write-Host "Archive location: $archivePath"
           }
           
-          Write-Host "`n✓ Workflow completed!" -ForegroundColor Green
+          Write-Host ""
+          Write-Host "[SUCCESS] Workflow completed!" -ForegroundColor Green
           Write-Host "You can download the artifact from the Actions tab." -ForegroundColor Yellow
         shell: powershell
