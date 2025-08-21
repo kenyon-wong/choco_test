@@ -36,11 +36,16 @@ jobs:
           IMAGE_NAME=$(echo $IMAGE | sed 's/[:\/]/_/g')  # Create a valid file name by replacing special characters
           echo "Exporting $IMAGE to docker-images/$IMAGE_NAME.tar"
           docker save $IMAGE -o docker-images/$IMAGE_NAME.tar || echo "Failed to save $IMAGE"
-        done
+          
+          # Upload each image individually as an artifact
+          echo "Uploading $IMAGE_NAME.tar as artifact"
+          mkdir -p docker-images/$IMAGE_NAME
+          mv docker-images/$IMAGE_NAME.tar docker-images/$IMAGE_NAME/
 
-    - name: Upload Docker images as artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: docker-images
-        path: docker-images/
-        retention-days: 7
+          # Use the upload-artifact action to upload the single image
+          uses: actions/upload-artifact@v4
+          with:
+            name: $IMAGE_NAME
+            path: docker-images/$IMAGE_NAME/$IMAGE_NAME.tar
+            retention-days: 7
+        done
